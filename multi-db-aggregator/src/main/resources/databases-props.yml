@@ -1,0 +1,24 @@
+databases:
+  - name: postgres1
+    url: jdbc:postgresql://172.26.0.2:5432/postgres1
+    username: postgres
+    password: postgres
+    table: users
+    driverClassName: org.postgresql.Driver
+    mapping:
+      id: user_id
+      username: login
+      name: first_name
+      surname: last_name
+
+  - name: postgres2
+    url: jdbc:postgresql://172.26.0.2:5432/postgres2
+    username: postgres
+    password: postgres
+    table: user_table
+    driverClassName: org.postgresql.Driver
+    mapping:
+      id: ldap_id
+      username: ldap_login
+      name: ldap_name
+      surname: ldap_surname
