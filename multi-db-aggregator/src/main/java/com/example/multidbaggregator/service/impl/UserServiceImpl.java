@@ -1,14 +1,15 @@
 package com.example.multidbaggregator.service.impl;
 
-import com.example.multidbaggregator.config.DatabaseConfig;
-import com.example.multidbaggregator.config.MappingData;
-import com.example.multidbaggregator.config.DatabaseProperties;
+import com.example.multidbaggregator.config.UserRowMapper;
+import com.example.multidbaggregator.config.model.JdbcTemplateWithMapping;
+import com.example.multidbaggregator.config.model.MappingData;
 import com.example.multidbaggregator.model.UserEntity;
 import com.example.multidbaggregator.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 
-import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,56 +17,39 @@ import java.util.List;
 public class UserServiceImpl implements UserService {
 
     @Autowired
-    private DatabaseProperties databaseProperties;
+    private List<JdbcTemplateWithMapping> jdbcTemplateList;
 
     @Override
     public List<UserEntity> getAll(String name, String surname) {
         List<UserEntity> aggregatedUserEntities = new ArrayList<>();
 
-        for (DatabaseConfig dbConfig : databaseProperties.getDatasources()) {
-            try (Connection connection = DriverManager.getConnection(dbConfig.getUrl(), dbConfig.getUsername(), dbConfig.getPassword())) {
-                MappingData mapping = dbConfig.getMapping();
-                Statement statement = connection.createStatement();
+        for (JdbcTemplateWithMapping jdbcTemplateWithMapping : jdbcTemplateList) {
+            NamedParameterJdbcTemplate namedParameterJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplateWithMapping.jdbcTemplate());
+            MappingData mappingData = jdbcTemplateWithMapping.mappingData();
 
-                String selectQuery = buildSelectQuery(dbConfig, name, surname);
-                ResultSet resultSet = statement.executeQuery(selectQuery);
+            StringBuilder query = new StringBuilder("SELECT * FROM ").append(mappingData.getTable());
+            MapSqlParameterSource parameters = new MapSqlParameterSource();
 
-                while (resultSet.next()) {
-                    UserEntity user = new UserEntity(
-                            resultSet.getLong(mapping.getId()),
-                            resultSet.getString(mapping.getUsername()),
-                            resultSet.getString(mapping.getName()),
-                            resultSet.getString(mapping.getSurname())
-                    );
+            appendConditionIfNotEmpty(query, parameters, "name", name, mappingData.getName());
+            appendConditionIfNotEmpty(query, parameters, "surname", surname, mappingData.getSurname());
 
-                    aggregatedUserEntities.add(user);
-                }
-            } catch (SQLException e) {
-                throw new RuntimeException(e);
-            }
+            List<UserEntity> users = namedParameterJdbcTemplate.query(query.toString(), parameters, new UserRowMapper(mappingData));
+            aggregatedUserEntities.addAll(users);
         }
 
         return aggregatedUserEntities;
     }
 
-    private String buildSelectQuery(DatabaseConfig dbConfig, String name, String surname) {
-        MappingData mapping = dbConfig.getMapping();
-        StringBuilder selectQuery = new StringBuilder("SELECT * FROM ").append(dbConfig.getTable());
-
-        addFilterCondition(selectQuery, " UPPER(" + dbConfig.getTable() + "." + mapping.getName() + ") LIKE UPPER('" + name + "')", name);
-        addFilterCondition(selectQuery, " UPPER(" + dbConfig.getTable() + "." + mapping.getSurname() + ") LIKE UPPER('" + surname + "')", surname);
-
-        return selectQuery.toString();
-    }
-
-    private void addFilterCondition(StringBuilder query, String condition, String param) {
-        if (param != null) {
+    private void appendConditionIfNotEmpty(StringBuilder query, MapSqlParameterSource parameters, String paramName, String paramValue, String columnName) {
+        if (paramValue != null && !paramValue.isEmpty()) {
             if (query.indexOf("WHERE") == -1) {
                 query.append(" WHERE");
             } else {
                 query.append(" AND");
             }
-            query.append(condition);
+
+            query.append(" UPPER(").append(columnName).append(") LIKE UPPER(:").append(paramName).append(")");
+            parameters.addValue(paramName, paramValue);
         }
     }
 }

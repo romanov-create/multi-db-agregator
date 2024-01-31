@@ -2,7 +2,7 @@ version: '3'
 
 services:
   postgres:
-    image: postgres:15.5
+    image: postgres:latest
     restart: always
     ports:
       - "5432:5432"
@@ -15,14 +15,14 @@ services:
     networks:
       - my-network
 
-#  multi-db-aggregator:
-#    build: ./multi-db-aggregator
-#    ports:
-#      - "7878:7878"
-#    depends_on:
-#      - postgres
-#    networks:
-#      - my-network
+  multi-db-aggregator:
+    build: ./multi-db-aggregator
+    ports:
+      - "7878:7878"
+    depends_on:
+      - postgres
+    networks:
+      - my-network
 
 networks:
   my-network:

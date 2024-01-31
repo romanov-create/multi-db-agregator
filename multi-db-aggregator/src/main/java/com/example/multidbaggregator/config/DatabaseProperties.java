@@ -1,5 +1,7 @@
 package com.example.multidbaggregator.config;
 
+import com.example.multidbaggregator.config.model.DatabaseConfig;
+import com.example.multidbaggregator.config.model.MappingData;
 import lombok.Getter;
 import lombok.Setter;
 import org.slf4j.Logger;
@@ -22,7 +24,6 @@ public class DatabaseProperties {
 
     private static final String CONFIG_FILE = "databases-props.yml";
 
-
     private final  List<DatabaseConfig> datasources = new ArrayList<>();
 
     public DatabaseProperties() {
@@ -41,6 +42,7 @@ public class DatabaseProperties {
 
                 for (Map<String, Object> database : databasesList) {
                     DatabaseConfig config = new DatabaseConfig();
+
                     config.setName((String) database.get("name"));
                     config.setUrl((String) database.get("url"));
                     config.setTable((String) database.get("table"));
@@ -51,6 +53,8 @@ public class DatabaseProperties {
                     if(database.containsKey("mapping") && database.containsValue(database.get("mapping"))) {
                         MappingData mappingData = new MappingData();
                         Map<String, Object> mapping = (Map<String, Object>) database.get("mapping");
+
+                        mappingData.setTable((String) mapping.get("table"));
                         mappingData.setId((String) mapping.get("id"));
                         mappingData.setUsername((String) mapping.get("username"));
                         mappingData.setName((String) mapping.get("name"));
@@ -63,7 +67,7 @@ public class DatabaseProperties {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace(); // Обработка ошибок загрузки конфигурации
+            e.printStackTrace();
         }
     }
 
@@ -73,7 +77,6 @@ public class DatabaseProperties {
                 DatabaseConfig config = datasources.get(i);
                 logger.info("Database Name {}: {}", i + 1, config.getName());
                 logger.info("Database URL {}: {}", i + 1, config.getUrl());
-                // добавьте логгирование других свойств по необходимости
             }
         } else {
             logger.warn("No databases configured.");

@@ -1,4 +1,4 @@
-package com.example.multidbaggregator.config;
+package com.example.multidbaggregator.config.model;
 
 import lombok.Getter;
 import lombok.Setter;
